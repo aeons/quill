@@ -72,7 +72,7 @@ object BottomTypedTerminal {
  * to `T_PERSON` or `Person`.
  */
 class Entity(val name: String, val properties: List[PropertyAlias])(theQuat: => Quat.Product) extends Query {
-  def quat: Quat.Product = theQuat
+  lazy val quat: Quat.Product = theQuat
   private def id = Entity.Id(name, properties)
   // Technically this should be part of the Entity case class but due to the limitations of how
   // scala creates companion objects, the apply/unapply wouldn't be able to work correctly.
@@ -219,11 +219,7 @@ object Infix {
 case class Function(params: List[Ident], body: Ast) extends Ast { def quat = body.quat }
 
 class Ident(val name: String)(theQuat: => Quat) extends Terminal with Ast {
-  private var cachedQuat: Quat = null
-  def quat: Quat = {
-    if (cachedQuat == null) cachedQuat = theQuat
-    cachedQuat
-  }
+  lazy val quat = theQuat
 
   private val id = Ident.Id(name)
   def visibility: Visibility = Visibility.Visible
@@ -422,7 +418,7 @@ case class OptionTableForall(ast: Ast, alias: Ident, body: Ast)
   extends OptionOperation { def quat = body.quat }
 case object OptionNoneId
 class OptionNone(theQuat: => Quat) extends OptionOperation with Terminal {
-  def quat: Quat = theQuat
+  lazy val quat: Quat = theQuat
   override def withQuat(quat: => Quat) = this.copy(quat = quat)
   override def equals(obj: Any): Boolean =
     obj match {
@@ -481,7 +477,7 @@ case class FunctionApply(function: Ast, values: List[Ast]) extends Operation { d
 sealed trait Value extends Ast
 
 class Constant(val v: Any)(theQuat: => Quat) extends Value {
-  def quat: Quat = theQuat
+  lazy val quat: Quat = theQuat
   private val id = Constant.Id(v)
   override def hashCode(): Int = id.hashCode()
   override def equals(obj: Any): Boolean =
@@ -505,13 +501,13 @@ object Constant {
 
 object NullValue extends Value { def quat = Quat.Null }
 
-case class Tuple(values: List[Ast]) extends Value { def quat = Quat.Tuple(values.map(_.quat)) }
+case class Tuple(values: List[Ast]) extends Value { lazy val quat = Quat.Tuple(values.map(_.quat)) }
 
-case class CaseClass(values: List[(String, Ast)]) extends Value { def quat = Quat.Product(values.map { case (k, v) => (k, v.quat) }) }
+case class CaseClass(values: List[(String, Ast)]) extends Value { lazy val quat = Quat.Product(values.map { case (k, v) => (k, v.quat) }) }
 
 //************************************************************
 
-case class Block(statements: List[Ast]) extends Ast { def quat = statements.last.quat } // Note. Assuming Block is not Empty
+case class Block(statements: List[Ast]) extends Ast { lazy val quat = statements.last.quat } // Note. Assuming Block is not Empty
 
 case class Val(name: Ident, body: Ast) extends Ast { def quat = body.quat }
 
@@ -587,7 +583,7 @@ object OnConflict {
 //************************************************************
 
 class Dynamic(val tree: Any)(theQuat: => Quat) extends Ast {
-  def quat = theQuat
+  lazy val quat = theQuat
 }
 
 object Dynamic {
